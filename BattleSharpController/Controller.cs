@@ -9,7 +9,7 @@ namespace BattleSharpController
 {
     public class Controller : MonoBehaviour
     {
-        /*public static UI_MainBinding uiMainBinding;
+        public static UI_MainBinding uiMainBinding;
         public static UI_BloodgateBase uiBloodgateBase;
         public static BloodgateSceneManager bloodgateSceneManager;
         public static BloodgateModelPool bloodgateModelPool;
@@ -78,6 +78,6 @@ namespace BattleSharpController
         [DllImport("user32.dll")]
         public static extern bool GetCursorPos(out Point lpPoint);
         [DllImport("user32.dll")]
-        public static extern bool SetCursorPos(int X, int Y);*/
+        public static extern bool SetCursorPos(int X, int Y);
     }
 }
