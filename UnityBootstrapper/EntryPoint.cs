@@ -19,7 +19,7 @@ namespace UnityBootstrapper
         public void Run(RemoteHooking.IContext InContext, String InChannelName)
         {
             AppDomain.CurrentDomain.AssemblyResolve += (sender, args) => GetType().Assembly.FullName == args.Name ? GetType().Assembly : null;
-            var monorootdomain = mono_get_root_domain();
+            /*var monorootdomain = mono_get_root_domain();
             mono_thread_attach(monorootdomain);
             mono_security_set_mode(0);
             var monodomain = mono_domain_get();
@@ -28,6 +28,13 @@ namespace UnityBootstrapper
             var monoassemblydesc = mono_method_desc_new(namespaceclassmethod, false);
             var monomethodcall = mono_method_desc_search_in_image(monoassemblydesc, monoassemblygetimage);
             var monoinvoke = mono_runtime_invoke(monomethodcall, 0, 0, 0);
+            //FreeLibrary(GetModuleHandle(@"BattleSharpController.dll"));
+            FreeLibrary(monoinvoke);
+            FreeLibrary(monomethodcall);
+            FreeLibrary(monoassemblydesc);
+            FreeLibrary(monoassemblygetimage);
+            FreeLibrary(monoassembly);*/
+            //FreeLibraryAndExitThread(monoassembly, 0);
         }
 
         private const string monoDll = "mono.dll";
@@ -44,22 +51,15 @@ namespace UnityBootstrapper
         [DllImport(monoDll, CallingConvention = CallingConvention.Cdecl)]
         private static extern IntPtr mono_assembly_get_image(IntPtr monoDomainAssembly);
         [DllImport(monoDll, CallingConvention = CallingConvention.Cdecl)]
-        private static extern IntPtr mono_class_from_name(IntPtr monoAssemblyImage, String nameSpaceLoad, String classLoad);
-        [DllImport(monoDll, CallingConvention = CallingConvention.Cdecl)]
-        private static extern IntPtr mono_class_get_method_from_name(IntPtr monoClassName, String methodCall, String level);
-        [DllImport(monoDll, CallingConvention = CallingConvention.Cdecl)]
         private static extern IntPtr mono_runtime_invoke(IntPtr monoMethod, Int32 level, Int32 unk, Int32 unk2);
         [DllImport(monoDll, CallingConvention = CallingConvention.Cdecl)]
         private static extern IntPtr mono_method_desc_new(String assemblyMethod, Boolean val);
         [DllImport(monoDll, CallingConvention = CallingConvention.Cdecl)]
         private static extern IntPtr mono_method_desc_search_in_image(IntPtr description, IntPtr image);
-        [DllImport(monoDll, CallingConvention = CallingConvention.Cdecl, CharSet = CharSet.Ansi, SetLastError = true)]
-        private static extern void mono_jit_parse_options(Int32 args, String[] assembly);
-        [DllImport(monoDll, CallingConvention = CallingConvention.Cdecl, SetLastError = true)]
-        private static extern void mono_debug_init(Int32 format);
-        [DllImport(monoDll, CallingConvention = CallingConvention.Cdecl)]
-        private static extern void mono_trace_set_level_string(String type);
-        [DllImport(monoDll, CallingConvention = CallingConvention.Cdecl)]
-        private static extern void mono_trace_set_mask_string(String type);
+        [DllImport("kernel32.dll", SetLastError = true)]
+        [return: MarshalAs(UnmanagedType.Bool)]
+        static extern bool FreeLibrary(IntPtr hModule);
+        [DllImport("kernel32.dll")]
+        public static extern IntPtr GetModuleHandle(string lpModuleName);
     }
 }

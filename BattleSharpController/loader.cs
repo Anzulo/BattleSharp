@@ -6,11 +6,11 @@ namespace BattleSharpController
 {
     public static class Loader
     {
-        public static BindingFlags flags = BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Static;
-        public static GameObject obj;
+        //public static BindingFlags flags = BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Static;
+        //public static GameObject obj;
         public static void Load()
         {
-            Controller.uiMainBinding = UI_MainBinding.Instance;
+            /*Controller.uiMainBinding = UI_MainBinding.Instance;
             Controller.uiBloodgateBase = (UI_BloodgateBase)Controller.uiMainBinding.GetType().GetField("_BloodgateBase", flags).GetValue(Controller.uiMainBinding);
             Controller.hudBase = (UI_HUDBase)Controller.uiMainBinding.GetType().GetField("_HUDBase", flags).GetValue(Controller.uiMainBinding);
             Controller.bloodgateSceneManager = (BloodgateSceneManager)Controller.uiBloodgateBase.GetType().GetField("_BloodgateSceneManager", flags).GetValue(Controller.uiBloodgateBase);
@@ -24,7 +24,7 @@ namespace BattleSharpController
             foreach (var obj in objs)
                 if (obj.transform.parent == null)
                     if (obj.name == "Effects")
-                        Controller.effects = obj;*/
+                        Controller.effects = obj;
 
             var old = GameObject.Find("Controller");
             if (old != null)
@@ -32,7 +32,7 @@ namespace BattleSharpController
             obj = new GameObject();
             obj.name = "Controller";
             obj.AddComponent<Controller>();
-            GameObject.DontDestroyOnLoad(obj);
+            GameObject.DontDestroyOnLoad(obj);*/
         }
     }
 }
