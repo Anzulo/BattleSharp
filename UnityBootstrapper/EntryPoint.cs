@@ -19,7 +19,7 @@ namespace UnityBootstrapper
         public void Run(RemoteHooking.IContext InContext, String InChannelName)
         {
             AppDomain.CurrentDomain.AssemblyResolve += (sender, args) => GetType().Assembly.FullName == args.Name ? GetType().Assembly : null;
-            /*var monorootdomain = mono_get_root_domain();
+            var monorootdomain = mono_get_root_domain();
             mono_thread_attach(monorootdomain);
             mono_security_set_mode(0);
             var monodomain = mono_domain_get();
@@ -28,13 +28,6 @@ namespace UnityBootstrapper
             var monoassemblydesc = mono_method_desc_new(namespaceclassmethod, false);
             var monomethodcall = mono_method_desc_search_in_image(monoassemblydesc, monoassemblygetimage);
             var monoinvoke = mono_runtime_invoke(monomethodcall, 0, 0, 0);
-            //FreeLibrary(GetModuleHandle(@"BattleSharpController.dll"));
-            FreeLibrary(monoinvoke);
-            FreeLibrary(monomethodcall);
-            FreeLibrary(monoassemblydesc);
-            FreeLibrary(monoassemblygetimage);
-            FreeLibrary(monoassembly);*/
-            //FreeLibraryAndExitThread(monoassembly, 0);
         }
 
         private const string monoDll = "mono.dll";

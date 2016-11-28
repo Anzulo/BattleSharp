@@ -1,10 +1,13 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Diagnostics;
+using System.Drawing;
 using System.Reflection;
-using System.Runtime.InteropServices;
+using Forms = System.Windows.Forms;
+using Gameplay.GameObjects;
 using UnityEngine;
+using UnityMain;
 using BloodGUI_Binding.Base;
+
 namespace BattleSharpController
 {
     public class Controller : MonoBehaviour
@@ -17,67 +20,250 @@ namespace BattleSharpController
         public static GameObject effects;
         public static UnityMain.Main unityMain;
         public static UI_HUDBase hudBase;
-        public static MethodInfo GetActiveEntityData;
         public static UnityCore.Core core;
-        public static Boolean targetLock = false;
-        public static Int32 targetSelect = 0;
-        public static List<String> targetSelector = new List<String>();
-        public static Int32 xOff = 0;
-        public static Int32 yOff = 0;
+        public static Gameplay.View.ViewState viewState;
+        
+        public static BindingFlags flags = BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Static;
+
+        public void Awake()
+        {
+            uiMainBinding = UI_MainBinding.Instance;
+            uiBloodgateBase = (UI_BloodgateBase)uiMainBinding.GetType().GetField("_BloodgateBase", flags).GetValue(uiMainBinding);
+            hudBase = (UI_HUDBase)uiMainBinding.GetType().GetField("_HUDBase", flags).GetValue(uiMainBinding);
+            bloodgateSceneManager = (BloodgateSceneManager)uiBloodgateBase.GetType().GetField("_BloodgateSceneManager", flags).GetValue(uiBloodgateBase);
+            //Controller.currentModels = (List<object>)Controller.bloodgateSceneManager.GetType().GetField("_CurrentModels", flags).GetValue(Controller.bloodgateSceneManager);
+            bloodgateModelPool = BloodgateModelPool.Instance;
+            unityMain = GameObject.Find("UnityMain(Clone)").GetComponent<UnityMain.Main>();
+            core = GameObject.Find("Core").GetComponent<UnityCore.Core>();
+            viewState = unityMain.GetViewState();
+
+            Menu.RootItems.Add(new MenuItem()
+            {
+                Text = "Common",
+                Children = new List<MenuItem>()
+                {
+                    new MenuItem()
+                    {
+                        Text = "TargetSelect"
+                    },
+                    new MenuItem()
+                    {
+                        Text = "KeyBinding"
+                    },
+                    new MenuItem()
+                    {
+                        Text = "Enabled"
+                    },
+                }
+            });
+        }
+        public static void TargetEnemy(Boolean active, Vector3 pos)
+        {
+            var viewportPos = Camera.main.WorldToViewportPoint(pos);
+            if (viewportPos.x > 0 && viewportPos.x < 1 && viewportPos.y > 0 && viewportPos.y < 1 && viewportPos.z > 0)
+            {
+                var screenPos = Camera.main.WorldToScreenPoint(pos);
+                Forms.Cursor.Position = new Point((int)(screenPos.x + Forms.Cursor.Position.X - (int)Input.mousePosition.x),
+                    (int)(Forms.Cursor.Position.Y - screenPos.y + (int)Input.mousePosition.y));
+            }
+        }
+        public static void SetCursorFromGamePos(Vector3 pos)
+        {
+            var viewportPos = Camera.main.WorldToViewportPoint(pos);
+            if (viewportPos.x > 0 && viewportPos.x < 1 && viewportPos.y > 0 && viewportPos.y < 1 && viewportPos.z > 0)
+            {
+                var screenPos = Camera.main.WorldToScreenPoint(pos);
+                Forms.Cursor.Position = new Point((int)(screenPos.x + Forms.Cursor.Position.X - (int)Input.mousePosition.x),
+                    (int)(Forms.Cursor.Position.Y - screenPos.y + (int)Input.mousePosition.y));
+            }
+        }
+
+        public static BloodGUI.Data_PlayerInfo GetClosestEnemy()
+        {
+            return GetClosestEnemy(out Single distance);
+        }
+        public static BloodGUI.Data_PlayerInfo GetClosestEnemy(out Single distance)
+        {
+            distance = Single.MaxValue;
+            var _PlayersInfoBinding = (BloodGUI_Binding.HUD.UI_PlayersInfoBinding)hudBase.GetType().GetField("_PlayersInfoBinding", flags).GetValue(hudBase);
+            var _LocalTeamData = (List<BloodGUI.Data_PlayerInfo>)_PlayersInfoBinding.GetType().GetField("_LocalTeamData", flags).GetValue(_PlayersInfoBinding);
+            var LocalPlayer = _LocalTeamData.Find(p => p.ID.ToString() == viewState.LookAtObject.ToString());
+            BloodGUI.Data_PlayerInfo closest = LocalPlayer;
+            var _EnemyTeamData = (List<BloodGUI.Data_PlayerInfo>)_PlayersInfoBinding.GetType().GetField("_EnemyTeamData", flags).GetValue(_PlayersInfoBinding);
+            foreach (var enemy in _EnemyTeamData)
+            {
+                if (enemy.IsDead)
+                    continue;
+                var newDistance = Vector3.Distance(LocalPlayer.Position(), enemy.Position());
+                if (newDistance < distance)
+                {
+                    distance = newDistance;
+                    closest = enemy;
+                }
+            }
+            return closest;
+        }
+        public static BloodGUI.Data_PlayerInfo GetClosestPlayer(out Single distance)
+        {
+            distance = Single.MaxValue;
+            var _PlayersInfoBinding = (BloodGUI_Binding.HUD.UI_PlayersInfoBinding)hudBase.GetType().GetField("_PlayersInfoBinding", flags).GetValue(hudBase);
+            var _EnemyTeamData = (List<BloodGUI.Data_PlayerInfo>)_PlayersInfoBinding.GetType().GetField("_EnemyTeamData", flags).GetValue(_PlayersInfoBinding);
+            var _LocalTeamData = (List<BloodGUI.Data_PlayerInfo>)_PlayersInfoBinding.GetType().GetField("_LocalTeamData", flags).GetValue(_PlayersInfoBinding);
+            var LocalPlayer = _LocalTeamData.Find(p => p.LocalPlayer);
+            BloodGUI.Data_PlayerInfo closest = LocalPlayer;
+            foreach (var enemy in _EnemyTeamData)
+            {
+                if (enemy.IsDead)
+                    continue;
+                var newDistance = Vector3.Distance(LocalPlayer.Position(), enemy.Position());
+                if (newDistance < distance)
+                {
+                    distance = newDistance;
+                    closest = enemy;
+                }
+            }
+            foreach (var player in _LocalTeamData)
+            {
+                if (player.IsDead)
+                    continue;
+                var newDistance = Vector3.Distance(LocalPlayer.Position(), player.Position());
+                if (newDistance < distance)
+                {
+                    distance = newDistance;
+                    closest = player;
+                }
+            }
+            return closest;
+        }
 
         public void Update()
         {
-            if (Input.GetKeyDown(KeyCode.Keypad1) || Input.GetKeyDown(KeyCode.Alpha1))
-                targetSelect = 0;
-            if (Input.GetKeyDown(KeyCode.Keypad2) || Input.GetKeyDown(KeyCode.Alpha2))
-                targetSelect = 1;
-            if (Input.GetKeyDown(KeyCode.Keypad3) || Input.GetKeyDown(KeyCode.Alpha3))
-                targetSelect = 2;
-            if (Input.GetKeyDown(KeyCode.Keypad4) || Input.GetKeyDown(KeyCode.Alpha4))
-                targetSelect = 3;
-            if (Input.GetKeyDown(KeyCode.Keypad5) || Input.GetKeyDown(KeyCode.Alpha5))
-                targetSelect = 4;
-            if (Input.GetKeyDown(KeyCode.Keypad6) || Input.GetKeyDown(KeyCode.Alpha6))
-                targetSelect = 5;
-            if (Input.GetKeyDown(KeyCode.BackQuote))
-                targetLock = !targetLock;
-            
-            targetSelector.Clear();
-            BloodGUI_Binding.HUD.UI_PlayersInfoBinding _PlayersInfoBinding = (BloodGUI_Binding.HUD.UI_PlayersInfoBinding)hudBase.GetType().GetField("_PlayersInfoBinding", Loader.flags).GetValue(hudBase);
-            List<BloodGUI.Data_PlayerInfo> _TempList = (List<BloodGUI.Data_PlayerInfo>)_PlayersInfoBinding.GetType().GetField("_TempList", Loader.flags).GetValue(_PlayersInfoBinding);
-            foreach (var hero in _TempList)
-                targetSelector.Add(hero.Name.Value + "`" + hero.ID.ToString());
-
-            if (targetLock)
+            var _PlayersInfoBinding = (BloodGUI_Binding.HUD.UI_PlayersInfoBinding)hudBase.GetType().GetField("_PlayersInfoBinding", flags).GetValue(hudBase);
+            var _LocalTeamData = (List<BloodGUI.Data_PlayerInfo>)_PlayersInfoBinding.GetType().GetField("_LocalTeamData", flags).GetValue(_PlayersInfoBinding);
+            var LocalPlayer = _LocalTeamData.Find(p => p.LocalPlayer);
+            var targetEnemy = GetClosestEnemy();
+            var hp = 0.0f;
+            var targetAlly = LocalPlayer;
+            foreach (var ally in _LocalTeamData)
             {
-                var target = unityMain.GetViewState().Models.Find(t => t.Id.ToString() == targetSelector[targetSelect].Split(new char[1] { '`' }, StringSplitOptions.RemoveEmptyEntries)[1]);
-                StunShared.Optional<Gameplay.View.ActiveObject> aed2 = (StunShared.Optional<Gameplay.View.ActiveObject>)GetActiveEntityData.Invoke(unityMain, new object[] { target.Id });
-                Vector3 screenpoint = unityMain.GameplayCamera.Camera.WorldToScreenPoint(new Vector3(aed2.Value.Position.X, 0, aed2.Value.Position.Y));
-
-                Point p;
-                GetCursorPos(out p);
-                xOff = p.X - (int)Input.mousePosition.x;
-                yOff = p.Y - (int)(Screen.height - Input.mousePosition.y);
-                SetCursorPos((int)(screenpoint.x + xOff), (int)(Screen.height - screenpoint.y + yOff));
+                if (hp < ally.Health.Value.Max - ally.Health.Value.Current)
+                {
+                    targetAlly = ally;
+                    hp = ally.Health.Value.Max - ally.Health.Value.Current;
+                }
+            }
+            if (LocalPlayer.CharacterIcon.name.Contains("alchemist"))
+            {
+                if (Input.GetMouseButton(0) || Input.GetKey(KeyCode.E) || Input.GetKey(KeyCode.R) || Input.GetKey(KeyCode.F))
+                    SetCursorFromGamePos(targetEnemy.Position());
+                if (Input.GetKey(KeyCode.Space) || Input.GetMouseButton(1))
+                    SetCursorFromGamePos(targetAlly.Position());
+            }
+            else if (LocalPlayer.CharacterIcon.name.Contains("glutton"))
+            {
+                if (Input.GetMouseButton(0) || Input.GetMouseButton(1) || Input.GetKey(KeyCode.E) || Input.GetKey(KeyCode.R) || Input.GetKey(KeyCode.F) || Input.GetKey(KeyCode.Space))
+                    SetCursorFromGamePos(targetEnemy.Position());
+            }
+            else if (LocalPlayer.CharacterIcon.name.Contains("gunner"))
+            {
+                if (Input.GetMouseButton(0) || Input.GetMouseButton(1) || Input.GetKey(KeyCode.E) || Input.GetKey(KeyCode.R) || Input.GetKey(KeyCode.F))
+                    SetCursorFromGamePos(targetEnemy.Position());
+            }
+            else if (LocalPlayer.CharacterIcon.name.Contains("igniter"))
+            {
+                if (Input.GetMouseButton(0) || Input.GetMouseButton(1) || Input.GetKey(KeyCode.Q) || Input.GetKey(KeyCode.E) || Input.GetKey(KeyCode.R) || Input.GetKey(KeyCode.F) || Input.GetKey(KeyCode.Space))
+                    SetCursorFromGamePos(targetEnemy.Position());
+            }
+            else if (LocalPlayer.CharacterIcon.name.Contains("inquisitor"))
+            {
+                if (Input.GetMouseButton(0) || Input.GetKey(KeyCode.E) || Input.GetKey(KeyCode.F))
+                    SetCursorFromGamePos(targetEnemy.Position());
+                if (Input.GetMouseButton(1) || Input.GetKey(KeyCode.R))
+                    SetCursorFromGamePos(targetAlly.Position());
+            }
+            else if (LocalPlayer.CharacterIcon.name.Contains("vanguard"))
+            {
+                if (Input.GetMouseButton(0) || Input.GetMouseButton(1) || Input.GetKey(KeyCode.E) || Input.GetKey(KeyCode.F) || Input.GetKey(KeyCode.Space))
+                    SetCursorFromGamePos(targetEnemy.Position());
+            }
+            else if (LocalPlayer.CharacterIcon.name.Contains("astronomer"))
+            {
+                if (Input.GetMouseButton(0) || Input.GetKey(KeyCode.E) || Input.GetKey(KeyCode.F) || Input.GetKey(KeyCode.R))
+                    SetCursorFromGamePos(targetEnemy.Position());
+                if (Input.GetMouseButton(1))
+                    SetCursorFromGamePos(targetAlly.Position());
+            }
+            else if (LocalPlayer.CharacterIcon.name.Contains("engineer"))
+            {
+                if (Input.GetMouseButton(0) || Input.GetMouseButton(1) ||Input.GetKey(KeyCode.E) || Input.GetKey(KeyCode.F) || Input.GetKey(KeyCode.R))
+                    SetCursorFromGamePos(targetEnemy.Position());
+                if (Input.GetKey(KeyCode.Q))
+                    SetCursorFromGamePos(targetAlly.Position());
+            }
+            else if (LocalPlayer.CharacterIcon.name.Contains("harbinger"))
+            {
+                if (Input.GetMouseButton(0) || Input.GetMouseButton(1) || Input.GetKey(KeyCode.E) || Input.GetKey(KeyCode.R) || Input.GetKey(KeyCode.Space))
+                    SetCursorFromGamePos(targetEnemy.Position());
+            }
+            else if (LocalPlayer.CharacterIcon.name.Contains("herald"))
+            {
+                if (Input.GetMouseButton(0) || Input.GetKey(KeyCode.E) || Input.GetKey(KeyCode.R))
+                    SetCursorFromGamePos(targetEnemy.Position());
+                if (Input.GetMouseButton(1) || Input.GetKey(KeyCode.R))
+                    SetCursorFromGamePos(targetAlly.Position());
+            }
+            else if (LocalPlayer.CharacterIcon.name.Contains("inhibitor"))
+            {
+                if (Input.GetMouseButton(0) || Input.GetMouseButton(1) || Input.GetKey(KeyCode.E) || Input.GetKey(KeyCode.R) || Input.GetKey(KeyCode.F))
+                    SetCursorFromGamePos(targetEnemy.Position());
+                if (Input.GetKey(KeyCode.Space))
+                    SetCursorFromGamePos(targetAlly.Position());
+            }
+            else if (LocalPlayer.CharacterIcon.name.Contains("nomad"))
+            {
+                if (Input.GetMouseButton(0) || Input.GetMouseButton(1) || Input.GetKey(KeyCode.E) || Input.GetKey(KeyCode.R) || Input.GetKey(KeyCode.F))
+                    SetCursorFromGamePos(targetEnemy.Position());
+            }
+            else if (LocalPlayer.CharacterIcon.name.Contains("psychopomp"))
+            {
+                if (Input.GetKey(KeyCode.E) || Input.GetKey(KeyCode.R))
+                    SetCursorFromGamePos(targetEnemy.Position());
+                if (Input.GetMouseButton(1))
+                    SetCursorFromGamePos(targetAlly.Position());
+                if (Input.GetMouseButton(0) || Input.GetKey(KeyCode.Space) || Input.GetKey(KeyCode.F))
+                {
+                    var target = GetClosestPlayer(out Single d);
+                    SetCursorFromGamePos(target.Position());
+                }
+            }
+            else if (LocalPlayer.CharacterIcon.name.Contains("ranid"))
+            {
+                if (Input.GetMouseButton(0) || Input.GetMouseButton(1) || Input.GetKey(KeyCode.E) || Input.GetKey(KeyCode.F))
+                    SetCursorFromGamePos(targetEnemy.Position());
+            }
+            else if (LocalPlayer.CharacterIcon.name.Contains("ravener"))
+            {
+                if (Input.GetMouseButton(0) || Input.GetMouseButton(1) || Input.GetKey(KeyCode.R) || Input.GetKey(KeyCode.F))
+                    SetCursorFromGamePos(targetEnemy.Position());
+            }
+            else if (LocalPlayer.CharacterIcon.name.Contains("seeker"))
+            {
+                if (Input.GetMouseButton(0) || Input.GetMouseButton(1) || Input.GetKey(KeyCode.E) || Input.GetKey(KeyCode.R) || Input.GetKey(KeyCode.F) || Input.GetKey(KeyCode.Space))
+                    SetCursorFromGamePos(targetEnemy.Position());
+            }
+            else if (LocalPlayer.CharacterIcon.name.Contains("spearmaster"))
+            {
+                if (Input.GetMouseButton(0) || Input.GetMouseButton(1) || Input.GetKey(KeyCode.E) || Input.GetKey(KeyCode.R))
+                    SetCursorFromGamePos(targetEnemy.Position());
+            }
+            else if (LocalPlayer.CharacterIcon.name.Contains("stormcaller"))
+            {
+                if (Input.GetMouseButton(0) || Input.GetMouseButton(1) || Input.GetKey(KeyCode.E) || Input.GetKey(KeyCode.R) || Input.GetKey(KeyCode.F))
+                    SetCursorFromGamePos(targetEnemy.Position());
             }
         }
         public void OnGUI()
         {
-            int i = 0;
-            GUI.Label(new Rect(100.0f, 15.0f, 1000, 100), "Targeted : " + targetSelector[targetSelect].Split(new char[1] { '`' }, StringSplitOptions.RemoveEmptyEntries)[0] + ", toggle with `");
-            foreach (var availableTarget in targetSelector)
-                GUI.Label(new Rect(100.0f, 30 + 15 * i++, 1000, 100), "Press " + i.ToString() + " to change to " + availableTarget.Split(new char[1] { '`' }, StringSplitOptions.RemoveEmptyEntries)[0]);
         }
-
-        [StructLayout(LayoutKind.Sequential)]
-        public struct Point
-        {
-            public int X;
-            public int Y;
-        }
-        [DllImport("user32.dll")]
-        public static extern bool GetCursorPos(out Point lpPoint);
-        [DllImport("user32.dll")]
-        public static extern bool SetCursorPos(int X, int Y);
     }
 }

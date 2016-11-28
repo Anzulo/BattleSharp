@@ -37,6 +37,8 @@
       <HintPath>C:\Program Files (x86)\Steam\steamapps\common\Battlerite\Battlerite_Data\Managed\MergedUnity.dll</HintPath>
     </Reference>
     <Reference Include="System" />
+    <Reference Include="System.Drawing" />
+    <Reference Include="System.Windows.Forms" />
     <Reference Include="UnityContent, Version=1.0.0.0, Culture=neutral, processorArchitecture=MSIL">
       <SpecificVersion>False</SpecificVersion>
       <HintPath>C:\Program Files (x86)\Steam\steamapps\common\Battlerite\Battlerite_Data\Managed\UnityContent.dll</HintPath>
@@ -46,8 +48,10 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Extensions.cs" />
     <Compile Include="Loader.cs" />
     <Compile Include="Controller.cs" />
+    <Compile Include="Menu.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
