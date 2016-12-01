@@ -1,21 +1,27 @@
-﻿using System.Reflection;
-using UnityEngine;
-using BloodGUI_Binding.Base;
+﻿using UnityEngine;
 
-namespace BattleSharpController
+namespace BattleSharpControllerGenericNamespace
 {
     public static class Loader
     {
-        public static GameObject obj;
+        public static GameObject BaseObject;
+        public static Controller Controller;
         public static void Load()
         {
-            //UnityEngine.SceneManagement.SceneManager.GetActiveScene().GetRootGameObjects();
-
-            obj = new GameObject();
-            obj.name = "BattleSharp";
-            obj.AddComponent<Menu>();
-            obj.AddComponent<Controller>();
-            GameObject.DontDestroyOnLoad(obj);
+            GameObject oldBaseObject;
+            while (oldBaseObject = GameObject.Find("BattleSharp"))
+                GameObject.DestroyImmediate(oldBaseObject);
+            BaseObject = new GameObject()
+            {
+                name = "BattleSharp"
+            };
+            BaseObject.AddComponent<Menu>();
+            Controller = BaseObject.AddComponent<Controller>();
+            BaseObject.AddComponent<DisableFog>();
+            BaseObject.AddComponent<ZoomOut>();
+            BaseObject.AddComponent<Timers>();
+            BaseObject.AddComponent<TargetLock>();
+            GameObject.DontDestroyOnLoad(BaseObject);
         }
     }
 }

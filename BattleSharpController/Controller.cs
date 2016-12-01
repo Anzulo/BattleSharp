@@ -3,39 +3,87 @@ using System.Collections.Generic;
 using System.Drawing;
 using System.Reflection;
 using Forms = System.Windows.Forms;
-using Gameplay.GameObjects;
 using UnityEngine;
 using UnityMain;
 using BloodGUI_Binding.Base;
 
-namespace BattleSharpController
+namespace BattleSharpControllerGenericNamespace
 {
     public class Controller : MonoBehaviour
     {
-        public static UI_MainBinding uiMainBinding;
-        public static UI_BloodgateBase uiBloodgateBase;
-        public static BloodgateSceneManager bloodgateSceneManager;
-        public static BloodgateModelPool bloodgateModelPool;
-        public static List<object> currentModels;
-        public static GameObject effects;
-        public static UnityMain.Main unityMain;
-        public static UI_HUDBase hudBase;
-        public static UnityCore.Core core;
-        public static Gameplay.View.ViewState viewState;
-        
-        public static BindingFlags flags = BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Static;
+        public UI_MainBinding uiMainBinding;
+        public UI_BloodgateBase uiBloodgateBase;
+        public BloodgateSceneManager bloodgateSceneManager;
+        public BloodgateModelPool bloodgateModelPool;
+        public List<object> currentModels;
+        public GameObject effects;
+        public Main unityMain;
+        public UI_HUDBase hudBase;
+        public UnityCore.Core core;
+        public Gameplay.View.ViewState viewState;
+        public EffectSystem.PrefabInstanceSystem prefabInstance;
+        public List<EffectSystem.PrefabInstanceSystem.PrefabInstanceState> prefabStates;
 
-        public void Awake()
+        public object game;
+        public MethodInfo GetState = null;
+        public MethodInfo SetState = null;
+
+        public BindingFlags flags = BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Static;
+
+        public delegate void GameStart();
+        public GameStart OnMatchStart;
+        public Boolean InGame = false;
+
+
+        public BloodGUI_Binding.HUD.UI_PlayersInfoBinding _PlayersInfoBinding;
+        public List<BloodGUI.Data_PlayerInfo> _EnemyTeamData;
+        public List<BloodGUI.Data_PlayerInfo> _LocalTeamData;
+        public BloodGUI.Data_PlayerInfo LocalPlayer;
+
+        public void GameStartInit()
         {
             uiMainBinding = UI_MainBinding.Instance;
             uiBloodgateBase = (UI_BloodgateBase)uiMainBinding.GetType().GetField("_BloodgateBase", flags).GetValue(uiMainBinding);
             hudBase = (UI_HUDBase)uiMainBinding.GetType().GetField("_HUDBase", flags).GetValue(uiMainBinding);
             bloodgateSceneManager = (BloodgateSceneManager)uiBloodgateBase.GetType().GetField("_BloodgateSceneManager", flags).GetValue(uiBloodgateBase);
-            //Controller.currentModels = (List<object>)Controller.bloodgateSceneManager.GetType().GetField("_CurrentModels", flags).GetValue(Controller.bloodgateSceneManager);
-            bloodgateModelPool = BloodgateModelPool.Instance;
-            unityMain = GameObject.Find("UnityMain(Clone)").GetComponent<UnityMain.Main>();
             core = GameObject.Find("Core").GetComponent<UnityCore.Core>();
-            viewState = unityMain.GetViewState();
+
+            _PlayersInfoBinding = (BloodGUI_Binding.HUD.UI_PlayersInfoBinding)hudBase.GetType().GetField("_PlayersInfoBinding", flags).GetValue(hudBase);
+            _EnemyTeamData = (List<BloodGUI.Data_PlayerInfo>)_PlayersInfoBinding.GetType().GetField("_EnemyTeamData", flags).GetValue(_PlayersInfoBinding);
+            _LocalTeamData = (List<BloodGUI.Data_PlayerInfo>)_PlayersInfoBinding.GetType().GetField("_LocalTeamData", flags).GetValue(_PlayersInfoBinding);
+            LocalPlayer = _LocalTeamData.Find(p => p.LocalPlayer);
+
+            var viewSystems = unityMain.GetType().GetField("_Systems", flags).GetValue(unityMain);
+            prefabInstance = (EffectSystem.PrefabInstanceSystem)viewSystems.GetType().GetField("PrefabInstance", flags).GetValue(viewSystems);
+            prefabStates = (List<EffectSystem.PrefabInstanceSystem.PrefabInstanceState>)Loader.Controller.prefabInstance.GetType().GetField("_PrefabStates", Loader.Controller.flags).GetValue(Loader.Controller.prefabInstance);
+
+            var GetGame = core.ClientInterface.GetType().GetMethod("GetGame", flags);
+            game = GetGame.Invoke(core.ClientInterface, new object[] { });
+            var gameMethods = game.GetType().GetMethods();
+
+            foreach (var gameMethod in gameMethods)
+            {
+                if (gameMethod.Name == "GetState" && gameMethod.ReturnParameter.ParameterType.ToString().Contains("GameValue"))
+                {
+                    if (gameMethod.GetParameters()[1].ParameterType.ToString().Contains("String"))
+                    {
+                        GetState = gameMethod;
+                    }
+                }
+                else if (gameMethod.Name == "SetState")
+                {
+                    if (gameMethod.GetParameters()[1].ParameterType.ToString().Contains("String"))
+                    {
+                        SetState = gameMethod;
+                    }
+                }
+            }
+        }
+        public void Awake()
+        {
+            unityMain = GameObject.Find("UnityMain(Clone)").GetComponent<Main>();
+            core = GameObject.Find("Core").GetComponent<UnityCore.Core>();
+            OnMatchStart = new GameStart(GameStartInit);
 
             Menu.RootItems.Add(new MenuItem()
             {
@@ -57,7 +105,7 @@ namespace BattleSharpController
                 }
             });
         }
-        public static void TargetEnemy(Boolean active, Vector3 pos)
+        public void TargetEnemy(Boolean active, Vector3 pos)
         {
             var viewportPos = Camera.main.WorldToViewportPoint(pos);
             if (viewportPos.x > 0 && viewportPos.x < 1 && viewportPos.y > 0 && viewportPos.y < 1 && viewportPos.z > 0)
@@ -67,7 +115,7 @@ namespace BattleSharpController
                     (int)(Forms.Cursor.Position.Y - screenPos.y + (int)Input.mousePosition.y));
             }
         }
-        public static void SetCursorFromGamePos(Vector3 pos)
+        public void SetCursorFromGamePos(Vector3 pos)
         {
             var viewportPos = Camera.main.WorldToViewportPoint(pos);
             if (viewportPos.x > 0 && viewportPos.x < 1 && viewportPos.y > 0 && viewportPos.y < 1 && viewportPos.z > 0)
@@ -78,18 +126,15 @@ namespace BattleSharpController
             }
         }
 
-        public static BloodGUI.Data_PlayerInfo GetClosestEnemy()
+        public BloodGUI.Data_PlayerInfo GetClosestEnemy()
         {
-            return GetClosestEnemy(out Single distance);
+            Single distance;
+            return GetClosestEnemy(out distance);
         }
-        public static BloodGUI.Data_PlayerInfo GetClosestEnemy(out Single distance)
+        public BloodGUI.Data_PlayerInfo GetClosestEnemy(out Single distance)
         {
             distance = Single.MaxValue;
-            var _PlayersInfoBinding = (BloodGUI_Binding.HUD.UI_PlayersInfoBinding)hudBase.GetType().GetField("_PlayersInfoBinding", flags).GetValue(hudBase);
-            var _LocalTeamData = (List<BloodGUI.Data_PlayerInfo>)_PlayersInfoBinding.GetType().GetField("_LocalTeamData", flags).GetValue(_PlayersInfoBinding);
-            var LocalPlayer = _LocalTeamData.Find(p => p.ID.ToString() == viewState.LookAtObject.ToString());
             BloodGUI.Data_PlayerInfo closest = LocalPlayer;
-            var _EnemyTeamData = (List<BloodGUI.Data_PlayerInfo>)_PlayersInfoBinding.GetType().GetField("_EnemyTeamData", flags).GetValue(_PlayersInfoBinding);
             foreach (var enemy in _EnemyTeamData)
             {
                 if (enemy.IsDead)
@@ -103,7 +148,7 @@ namespace BattleSharpController
             }
             return closest;
         }
-        public static BloodGUI.Data_PlayerInfo GetClosestPlayer(out Single distance)
+        public BloodGUI.Data_PlayerInfo GetClosestPlayer(out Single distance)
         {
             distance = Single.MaxValue;
             var _PlayersInfoBinding = (BloodGUI_Binding.HUD.UI_PlayersInfoBinding)hudBase.GetType().GetField("_PlayersInfoBinding", flags).GetValue(hudBase);
@@ -138,132 +183,30 @@ namespace BattleSharpController
 
         public void Update()
         {
-            var _PlayersInfoBinding = (BloodGUI_Binding.HUD.UI_PlayersInfoBinding)hudBase.GetType().GetField("_PlayersInfoBinding", flags).GetValue(hudBase);
-            var _LocalTeamData = (List<BloodGUI.Data_PlayerInfo>)_PlayersInfoBinding.GetType().GetField("_LocalTeamData", flags).GetValue(_PlayersInfoBinding);
-            var LocalPlayer = _LocalTeamData.Find(p => p.LocalPlayer);
-            var targetEnemy = GetClosestEnemy();
-            var hp = 0.0f;
-            var targetAlly = LocalPlayer;
-            foreach (var ally in _LocalTeamData)
+            viewState = unityMain.GetViewState();
+            if (viewState != null && !viewState.IsInLobby && !viewState.IsLoading && !viewState.IsInCinematic)
             {
-                if (hp < ally.Health.Value.Max - ally.Health.Value.Current)
+                if (InGame == false)
                 {
-                    targetAlly = ally;
-                    hp = ally.Health.Value.Max - ally.Health.Value.Current;
+                    InGame = true;
+                    if (OnMatchStart != null)
+                        OnMatchStart();
                 }
             }
-            if (LocalPlayer.CharacterIcon.name.Contains("alchemist"))
+            else
             {
-                if (Input.GetMouseButton(0) || Input.GetKey(KeyCode.E) || Input.GetKey(KeyCode.R) || Input.GetKey(KeyCode.F))
-                    SetCursorFromGamePos(targetEnemy.Position());
-                if (Input.GetKey(KeyCode.Space) || Input.GetMouseButton(1))
-                    SetCursorFromGamePos(targetAlly.Position());
-            }
-            else if (LocalPlayer.CharacterIcon.name.Contains("glutton"))
-            {
-                if (Input.GetMouseButton(0) || Input.GetMouseButton(1) || Input.GetKey(KeyCode.E) || Input.GetKey(KeyCode.R) || Input.GetKey(KeyCode.F) || Input.GetKey(KeyCode.Space))
-                    SetCursorFromGamePos(targetEnemy.Position());
-            }
-            else if (LocalPlayer.CharacterIcon.name.Contains("gunner"))
-            {
-                if (Input.GetMouseButton(0) || Input.GetMouseButton(1) || Input.GetKey(KeyCode.E) || Input.GetKey(KeyCode.R) || Input.GetKey(KeyCode.F))
-                    SetCursorFromGamePos(targetEnemy.Position());
-            }
-            else if (LocalPlayer.CharacterIcon.name.Contains("igniter"))
-            {
-                if (Input.GetMouseButton(0) || Input.GetMouseButton(1) || Input.GetKey(KeyCode.Q) || Input.GetKey(KeyCode.E) || Input.GetKey(KeyCode.R) || Input.GetKey(KeyCode.F) || Input.GetKey(KeyCode.Space))
-                    SetCursorFromGamePos(targetEnemy.Position());
-            }
-            else if (LocalPlayer.CharacterIcon.name.Contains("inquisitor"))
-            {
-                if (Input.GetMouseButton(0) || Input.GetKey(KeyCode.E) || Input.GetKey(KeyCode.F))
-                    SetCursorFromGamePos(targetEnemy.Position());
-                if (Input.GetMouseButton(1) || Input.GetKey(KeyCode.R))
-                    SetCursorFromGamePos(targetAlly.Position());
-            }
-            else if (LocalPlayer.CharacterIcon.name.Contains("vanguard"))
-            {
-                if (Input.GetMouseButton(0) || Input.GetMouseButton(1) || Input.GetKey(KeyCode.E) || Input.GetKey(KeyCode.F) || Input.GetKey(KeyCode.Space))
-                    SetCursorFromGamePos(targetEnemy.Position());
-            }
-            else if (LocalPlayer.CharacterIcon.name.Contains("astronomer"))
-            {
-                if (Input.GetMouseButton(0) || Input.GetKey(KeyCode.E) || Input.GetKey(KeyCode.F) || Input.GetKey(KeyCode.R))
-                    SetCursorFromGamePos(targetEnemy.Position());
-                if (Input.GetMouseButton(1))
-                    SetCursorFromGamePos(targetAlly.Position());
-            }
-            else if (LocalPlayer.CharacterIcon.name.Contains("engineer"))
-            {
-                if (Input.GetMouseButton(0) || Input.GetMouseButton(1) ||Input.GetKey(KeyCode.E) || Input.GetKey(KeyCode.F) || Input.GetKey(KeyCode.R))
-                    SetCursorFromGamePos(targetEnemy.Position());
-                if (Input.GetKey(KeyCode.Q))
-                    SetCursorFromGamePos(targetAlly.Position());
-            }
-            else if (LocalPlayer.CharacterIcon.name.Contains("harbinger"))
-            {
-                if (Input.GetMouseButton(0) || Input.GetMouseButton(1) || Input.GetKey(KeyCode.E) || Input.GetKey(KeyCode.R) || Input.GetKey(KeyCode.Space))
-                    SetCursorFromGamePos(targetEnemy.Position());
-            }
-            else if (LocalPlayer.CharacterIcon.name.Contains("herald"))
-            {
-                if (Input.GetMouseButton(0) || Input.GetKey(KeyCode.E) || Input.GetKey(KeyCode.R))
-                    SetCursorFromGamePos(targetEnemy.Position());
-                if (Input.GetMouseButton(1) || Input.GetKey(KeyCode.R))
-                    SetCursorFromGamePos(targetAlly.Position());
-            }
-            else if (LocalPlayer.CharacterIcon.name.Contains("inhibitor"))
-            {
-                if (Input.GetMouseButton(0) || Input.GetMouseButton(1) || Input.GetKey(KeyCode.E) || Input.GetKey(KeyCode.R) || Input.GetKey(KeyCode.F))
-                    SetCursorFromGamePos(targetEnemy.Position());
-                if (Input.GetKey(KeyCode.Space))
-                    SetCursorFromGamePos(targetAlly.Position());
-            }
-            else if (LocalPlayer.CharacterIcon.name.Contains("nomad"))
-            {
-                if (Input.GetMouseButton(0) || Input.GetMouseButton(1) || Input.GetKey(KeyCode.E) || Input.GetKey(KeyCode.R) || Input.GetKey(KeyCode.F))
-                    SetCursorFromGamePos(targetEnemy.Position());
-            }
-            else if (LocalPlayer.CharacterIcon.name.Contains("psychopomp"))
-            {
-                if (Input.GetKey(KeyCode.E) || Input.GetKey(KeyCode.R))
-                    SetCursorFromGamePos(targetEnemy.Position());
-                if (Input.GetMouseButton(1))
-                    SetCursorFromGamePos(targetAlly.Position());
-                if (Input.GetMouseButton(0) || Input.GetKey(KeyCode.Space) || Input.GetKey(KeyCode.F))
+                if (InGame == true)
                 {
-                    var target = GetClosestPlayer(out Single d);
-                    SetCursorFromGamePos(target.Position());
+                    InGame = false;
+                    if (OnMatchStart != null)
+                        OnMatchStart();
                 }
             }
-            else if (LocalPlayer.CharacterIcon.name.Contains("ranid"))
-            {
-                if (Input.GetMouseButton(0) || Input.GetMouseButton(1) || Input.GetKey(KeyCode.E) || Input.GetKey(KeyCode.F))
-                    SetCursorFromGamePos(targetEnemy.Position());
-            }
-            else if (LocalPlayer.CharacterIcon.name.Contains("ravener"))
-            {
-                if (Input.GetMouseButton(0) || Input.GetMouseButton(1) || Input.GetKey(KeyCode.R) || Input.GetKey(KeyCode.F))
-                    SetCursorFromGamePos(targetEnemy.Position());
-            }
-            else if (LocalPlayer.CharacterIcon.name.Contains("seeker"))
-            {
-                if (Input.GetMouseButton(0) || Input.GetMouseButton(1) || Input.GetKey(KeyCode.E) || Input.GetKey(KeyCode.R) || Input.GetKey(KeyCode.F) || Input.GetKey(KeyCode.Space))
-                    SetCursorFromGamePos(targetEnemy.Position());
-            }
-            else if (LocalPlayer.CharacterIcon.name.Contains("spearmaster"))
-            {
-                if (Input.GetMouseButton(0) || Input.GetMouseButton(1) || Input.GetKey(KeyCode.E) || Input.GetKey(KeyCode.R))
-                    SetCursorFromGamePos(targetEnemy.Position());
-            }
-            else if (LocalPlayer.CharacterIcon.name.Contains("stormcaller"))
-            {
-                if (Input.GetMouseButton(0) || Input.GetMouseButton(1) || Input.GetKey(KeyCode.E) || Input.GetKey(KeyCode.R) || Input.GetKey(KeyCode.F))
-                    SetCursorFromGamePos(targetEnemy.Position());
-            }
+            return;
         }
         public void OnGUI()
         {
+            GUI.Label(new Rect(0, 0, 200, 25), "BattleSharp by Shalzuth");
         }
     }
 }

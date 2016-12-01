@@ -1,9 +1,8 @@
 ﻿using System;
-using System.Collections;
 using System.Collections.Generic;
-using System.Linq;
 using UnityEngine;
-namespace BattleSharpController
+
+namespace BattleSharpControllerGenericNamespace
 {
     public class MenuItem
     {
@@ -32,7 +31,7 @@ namespace BattleSharpController
             else
             {
                 foreach (var sibling in siblings)
-                    if (sibling.Children?.Count > 0)
+                    if (sibling.Children != null && sibling.Children.Count > 0)
                         DisableSiblings(item, sibling.Children);
             }
 
@@ -44,7 +43,7 @@ namespace BattleSharpController
                 DisableSiblings(item, RootItems);
                 item.Enabled = !item.Enabled;
             }
-            if (item.Enabled && item.Children?.Count > 0)
+            if (item.Enabled && item.Children != null && item.Children.Count > 0)
             {
                 foreach (var child in item.Children)
                     DrawItem(child, yOffset++, xOffset);
@@ -57,7 +56,7 @@ namespace BattleSharpController
                 return;
             int yOffset = 0;
             int xOffset = 0;
-            foreach(var item in RootItems)
+            foreach (var item in RootItems)
                 DrawItem(item, yOffset++, xOffset);
         }
     }
