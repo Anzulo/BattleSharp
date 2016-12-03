@@ -4,14 +4,19 @@ namespace BattleSharpControllerGenericNamespace
 {
     public class DisableFog : MonoBehaviour
     {
+        Controller.GameStart GameStart;
         public void Start()
         {
-            Loader.Controller.OnMatchStart += DisableFogOfWar;
-            Menu.RootItems.Add(new MenuItem() { Text = "Fog" });
+            GameStart = new Controller.GameStart(DisableFogOfWar);
         }
-        public void OnDestroy()
+        public void OnEnable()
         {
-            Loader.Controller.OnMatchStart -= DisableFogOfWar;
+            Loader.Controller.OnMatchStart += GameStart;
+            DisableFogOfWar(true);
+        }
+        public void OnDisable()
+        {
+            Loader.Controller.OnMatchStart -= GameStart;
             DisableFogOfWar(false);
         }
         public void DisableFogOfWar()
@@ -20,14 +25,18 @@ namespace BattleSharpControllerGenericNamespace
         }
         public void DisableFogOfWar(bool enable)
         {
-            foreach (var current in Loader.Controller.unityMain.GetViewState().ActiveObjects)
-            {
-                if (current.TypeId == Loader.Controller.unityMain.GetViewState().ActiveCameraModePresetType)
-                {
-                    Loader.Controller.SetState.MakeGenericMethod(typeof(bool)).Invoke(Loader.Controller.game, new object[] { current.ObjectId, "DisableFogOfWar", enable });
-                    break;
-                }
-            }
+            Loader.Controller.SetGameState<bool>(Loader.Controller.ActiveCamera.ObjectId, "DisableFogOfWar", enable);
         }
+        public void Update()
+        {
+            if (Loader.Controller.GetGameState(Loader.Controller.ActiveCamera.ObjectId, "DisableFogOfWar") == false)
+                Loader.Controller.SetGameState<bool>(Loader.Controller.ActiveCamera.ObjectId, "DisableFogOfWar", true);
+        }
+#if DEBUG
+        public void OnGUI()
+        {
+            GUI.Label(new Rect(0, 61, 800, 25), "fog : " + Loader.Controller.GetGameState(Loader.Controller.ActiveCamera.ObjectId, "DisableFogOfWar"));
+        }
+#endif
     }
 }

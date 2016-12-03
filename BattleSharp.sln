@@ -3,15 +3,14 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio 15
 VisualStudioVersion = 15.0.25914.0
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "BattleSharp", "BattleSharp\BattleSharp.csproj", "{43C8AA0A-DFF1-4CF5-82A0-75C2AF401C1A}"
-	ProjectSection(ProjectDependencies) = postProject
-		{B4CE3E30-3F37-4109-943F-65F7F21A9D17} = {B4CE3E30-3F37-4109-943F-65F7F21A9D17}
-		{5D41813F-2590-45B4-A3AF-2E503DBE33D6} = {5D41813F-2590-45B4-A3AF-2E503DBE33D6}
-	EndProjectSection
-EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "UnityBootstrapper", "UnityBootstrapper\UnityBootstrapper.csproj", "{B4CE3E30-3F37-4109-943F-65F7F21A9D17}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "BattleSharpController", "BattleSharpController\BattleSharpController.csproj", "{5D41813F-2590-45B4-A3AF-2E503DBE33D6}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "BattleSharp", "BattleSharp\BattleSharp.csproj", "{4344AD8A-8ABB-4360-AC45-73A468D274F4}"
+	ProjectSection(ProjectDependencies) = postProject
+		{5D41813F-2590-45B4-A3AF-2E503DBE33D6} = {5D41813F-2590-45B4-A3AF-2E503DBE33D6}
+	EndProjectSection
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -19,10 +18,6 @@ Global
 		Release|Any CPU = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
-		{43C8AA0A-DFF1-4CF5-82A0-75C2AF401C1A}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{43C8AA0A-DFF1-4CF5-82A0-75C2AF401C1A}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{43C8AA0A-DFF1-4CF5-82A0-75C2AF401C1A}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{43C8AA0A-DFF1-4CF5-82A0-75C2AF401C1A}.Release|Any CPU.Build.0 = Release|Any CPU
 		{B4CE3E30-3F37-4109-943F-65F7F21A9D17}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{B4CE3E30-3F37-4109-943F-65F7F21A9D17}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{B4CE3E30-3F37-4109-943F-65F7F21A9D17}.Release|Any CPU.ActiveCfg = Release|Any CPU
@@ -31,6 +26,10 @@ Global
 		{5D41813F-2590-45B4-A3AF-2E503DBE33D6}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{5D41813F-2590-45B4-A3AF-2E503DBE33D6}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{5D41813F-2590-45B4-A3AF-2E503DBE33D6}.Release|Any CPU.Build.0 = Release|Any CPU
+		{4344AD8A-8ABB-4360-AC45-73A468D274F4}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{4344AD8A-8ABB-4360-AC45-73A468D274F4}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{4344AD8A-8ABB-4360-AC45-73A468D274F4}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{4344AD8A-8ABB-4360-AC45-73A468D274F4}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

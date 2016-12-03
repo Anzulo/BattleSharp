@@ -1,63 +1,30 @@
-﻿using System;
-using System.Collections.Generic;
-using UnityEngine;
+﻿using UnityEngine;
 
 namespace BattleSharpControllerGenericNamespace
 {
-    public class MenuItem
-    {
-        public String Text = "";
-        public List<MenuItem> Children = new List<MenuItem>();
-        public Boolean Enabled = false;
-    }
     public class Menu : MonoBehaviour
     {
-        public static List<MenuItem> RootItems;
-        int ySize = 30;
-        int xSize = 150;
-
-        void Awake()
+        Rect window;
+        void Start()
         {
-            RootItems = new List<MenuItem>();
+            window = new Rect(100, 15, 115, ((Loader.BaseObject.GetComponents<MonoBehaviour>().Length) * 18 - 9));
         }
-        void DisableSiblings(MenuItem item, List<MenuItem> siblings)
-        {
-            if (siblings.Contains(item))
-            {
-                foreach (var sibling in siblings)
-                    if (sibling != item)
-                        sibling.Enabled = false;
-            }
-            else
-            {
-                foreach (var sibling in siblings)
-                    if (sibling.Children != null && sibling.Children.Count > 0)
-                        DisableSiblings(item, sibling.Children);
-            }
-
-        }
-        void DrawItem(MenuItem item, int yOffset, int xOffset)
-        {
-            if (GUI.Button(new Rect(xOffset++ * xSize, yOffset * ySize, xSize, ySize), item.Text))
-            {
-                DisableSiblings(item, RootItems);
-                item.Enabled = !item.Enabled;
-            }
-            if (item.Enabled && item.Children != null && item.Children.Count > 0)
-            {
-                foreach (var child in item.Children)
-                    DrawItem(child, yOffset++, xOffset);
-            }
-        }
-
         void OnGUI()
         {
-            if (!Input.GetKey(KeyCode.LeftShift))
+            if (!Input.GetKey(KeyCode.LeftAlt))
                 return;
-            int yOffset = 0;
-            int xOffset = 0;
-            foreach (var item in RootItems)
-                DrawItem(item, yOffset++, xOffset);
+            window = GUI.Window(0, window, ShowAllAddons, "BattleSharp");
+        }
+        void ShowAllAddons(int windowID)
+        {
+            int y = 1;
+            foreach (var component in Loader.BaseObject.GetComponents<MonoBehaviour>())
+            {
+                if (component.GetType().Name == "Controller" || component.GetType().Name == "Menu")
+                    continue;
+                component.enabled = GUI.Toggle(new Rect(0, 18 * y++, 200, 20), component.enabled, component.GetType().Name);
+            }
+            GUI.DragWindow();
         }
     }
 }

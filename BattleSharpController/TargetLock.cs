@@ -5,12 +5,10 @@ namespace BattleSharpControllerGenericNamespace
 {
     public class TargetLock : MonoBehaviour
     {
-        public void Start()
-        {
-            Menu.RootItems.Add(new MenuItem() { Text = "TargetLock" });
-        }
         public void Update()
         {
+            if (Input.GetKey(KeyCode.LeftAlt))
+                return;
             var targetEnemy = Loader.Controller.GetClosestEnemy();
             var hp = 0.0f;
             var targetAlly = Loader.Controller.LocalPlayer;
@@ -102,8 +100,7 @@ namespace BattleSharpControllerGenericNamespace
                     Loader.Controller.SetCursorFromGamePos(targetAlly.Position());
                 if (Input.GetMouseButton(0) || Input.GetKey(KeyCode.Space) || Input.GetKey(KeyCode.F))
                 {
-                    Single d;
-                    var target = Loader.Controller.GetClosestPlayer(out d);
+                    var target = Loader.Controller.GetClosestPlayer();
                     Loader.Controller.SetCursorFromGamePos(target.Position());
                 }
             }
@@ -133,5 +130,11 @@ namespace BattleSharpControllerGenericNamespace
                     Loader.Controller.SetCursorFromGamePos(targetEnemy.Position());
             }
         }
+#if DEBUG
+        public void OnGUI()
+        {
+            GUI.Label(new Rect(0, 43, 800, 25), "target : " + Loader.Controller.GetClosestEnemy().Position());
+        }
+#endif
     }
 }

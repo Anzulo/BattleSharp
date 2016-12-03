@@ -12,12 +12,12 @@ namespace BattleSharpControllerGenericNamespace
         }
         public void OnGUI()
         {
-            foreach (var current in Loader.Controller.viewState.ActiveObjects)
+            foreach (var current in Loader.Controller.unityMain.GetViewState().ActiveObjects)
             {
                 if (current.TypeId.ToString() == "RiteOfBonesSpawner" || current.TypeId.ToString() == "HealthShardSpawner" || current.TypeId.ToString() == "EnergyShardSpawner")
                 {
-                    var age = (float)(Gameplay.GameValue)Loader.Controller.GetState.Invoke(Loader.Controller.game, new object[] { current.ObjectId, "Age", false });
-                    var effectState = (Gameplay.View.EffectState)(Gameplay.GameValue)Loader.Controller.GetState.Invoke(Loader.Controller.game, new object[] { current.ObjectId, "EffectState", false });
+                    var age = Loader.Controller.GetGameState(current.ObjectId, "Age");
+                    var effectState = (Gameplay.View.EffectState)Loader.Controller.GetGameState(current.ObjectId, "EffectState");
                     var effectStateValue = (StunShared.Optional<Gameplay.View.EffectInstanceId>)effectStateField.GetValue(effectState);
                     foreach (var prefabState in Loader.Controller.prefabStates)
                     {
@@ -35,4 +35,3 @@ namespace BattleSharpControllerGenericNamespace
         }
     }
 }
-
