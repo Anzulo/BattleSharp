@@ -8,5 +8,5 @@ Hold LeftAlt button to open menu in game.
   * Timers shows time until shards respawn.
   * ZoomOut lets you zoom out far.
 
-![image](https://imgur.com/a/FQyvw)
+![Screenshot](https://i.imgur.com/spOp9AS.jpg)
 
